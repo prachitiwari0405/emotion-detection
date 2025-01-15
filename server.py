@@ -1,29 +1,38 @@
 import sys
-sys.path.append('/home/project/final_project/oaqjp-final-project-emb-ai')  # Adjust the path if needed
+sys.path.append('/home/project/final_project/oaqjp-final-project-emb-ai/EmotionDetection')
+from emotion_detection import EmotionDetector
+
 from flask import Flask, render_template, request, jsonify
-from EmotionDetection.emotion_detection import EmotionPredict
-# Initialize Flask app
+
 app = Flask(__name__)
-# Initialize the emotion predictor (use the appropriate initialization method from the AI library)
-emotion_predictor = EmotionPredict()
+
+# Instantiate EmotionDetector
+emotion_detector = EmotionDetector()
+
 @app.route('/emotionDetector', methods=['POST'])
 def emotion_detector_route():
-    input_text = request.form['text']
-        # Get the emotion prediction result (dominant emotion)
-    dominant_emotion = emotion_predictor.predict_emotion(input_text)
-    # If no emotion is detected, return an error response
-    if not dominant_emotion:
-        return jsonify({"error": "Emotion detection failed!"}), 400
-    
-    # Prepare the response to be returned
+    # Retrieve the text from the form data
+    input_text = request.form.get('text', '').strip()  # Safely fetch and strip text input
+
+    if not input_text:
+        return jsonify({"error": "Input text cannot be empty!"}), 400  # Error for blank entries
+
+    # Predict emotion using EmotionDetector
+    result = emotion_detector.predict_emotion(input_text)
+
+    if 'error' in result:  # Handle errors from prediction
+        return jsonify(result), 400
+
     response_data = {
-        "dominant_emotion": dominant_emotion
+        "dominant_emotion": result["predicted_emotion"]
     }
-    
-    return jsonify(response_data)
+
+    return jsonify(response_data), 200  # Return success response
+
 @app.route('/')
 def home():
-    return render_template('index.html')  # Renders the index page for the front-end
+    return render_template('index.html')  # Render the home page
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
